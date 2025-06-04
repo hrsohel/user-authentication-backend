@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Session from "../models/Session.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 
@@ -60,18 +61,26 @@ export const loginUser = async (req, res) => {
         const expiresIn = rememberMe ? '7d' : '30m';
 
         const token = jwt.sign({ userId: user._id }, "my-secret", { expiresIn });
-        // req.session.token = {token}
-        res.cookie("user-token", token, {
-            // domain: '.localhost',
+        user.userIdBase64 = Buffer.from(user?._id).toString('base64');
+        await Promise.all([
+            Session.findOneAndUpdate(
+                {userId: user?._id},
+                {$set: {token}},
+                { upsert: true, new: true }
+            ),
+            user.save()
+        ])
+        res.cookie("user-cookie", user.userIdBase64, {
             httpOnly: true,
-            sameSite: process.env.NODE_ENV === "production" ? "None" : 'Lax',
-            secure: process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "production", 
+            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
             maxAge: rememberMe ? 7 * 24 * 3600 * 1000 : 30 * 60 * 1000,
         });
         return res.status(200).json({
             success: true,
             message: 'Login successful',
             token,
+            crypted: user.userIdBase64,
             expiresIn
         });
     } catch (error) {
@@ -97,6 +106,42 @@ export const getSingleUser = async (req, res) => {
         return res.json({success: true, data: userData, cookie: req.cookies})
     } catch (error) {
         console.error('single user fetching error:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+export const authenticatesubdomain = async (req, res) => {
+    try {
+        const {v} = req.body
+        const original = Buffer.from(v, 'base64url').toString();
+        const sessionData = await Session.findOne({userId: original})
+        if(!sessionData) {
+            return res.json({success: false, message: "you are not authorized!"})
+        }
+        const {token} = await Session.findOne({userId: original})
+        const {userId} = jwt.verify(token, "my-secret");
+        const userData = await User.findById(userId, {password: 0})
+        return res.json({success: true, message: "You have access!", data: userData})
+    } catch (err) {
+        console.log(err)
+        if (err.name === 'TokenExpiredError') {
+            return res.status(401).json({ success: false, message: 'Token expired' });
+        } else if (err.name === 'JsonWebTokenError') {
+            return res.status(401).json({ success: false, message: 'Invalid token' });
+        } else {
+            return res.status(401).json({ success: false, message: 'Authentication failed' });
+        }
+    }
+}
+
+export const logoutUser = async (req, res) => {
+    try {
+        const base64 = req.cookies["user-cookie"]
+        const original = Buffer.from(base64, 'base64url').toString();
+        await Session.deleteOne({userId: original})
+        return res.json({success: true, message: "You have access!"})
+    } catch (error) {
+        console.error('logout error:', error);
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 }

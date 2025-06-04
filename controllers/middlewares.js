@@ -2,9 +2,6 @@ import jwt from "jsonwebtoken"
 
 export const authorizeUser = async (req, res, next) => {
     try {
-        // console.log("from profile api", req.session.token)
-        console.log("from profile api", req.cookies)
-        console.log("user-profile", req.hostname)
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ success: false, message: 'Token missing or malformed' });
@@ -27,12 +24,14 @@ export const authorizeUser = async (req, res, next) => {
 
 export const authorizeSubDomain = async (req, res, next) => {
     try {
-        // const token = req.session.token
-        // const decoded = jwt.verify(token, "my-secret");
-        // console.log(decoded)
-        // req.user = decoded;
-        // console.log("from subdomain", req.session)
-        console.log("from subdomain", req.cookies)
+        // const authHeader = req.headers.authorization;
+        // console.log(authHeader)
+        // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        //     return res.status(401).json({ success: false, message: 'Token missing or malformed' });
+        // }
+        // const v = authHeader.split(' ')[1];
+        // const original = Buffer.from(v, 'base64url').toString();
+        // console.log(original)
         next()
     } catch (err) {
         console.log(err)
