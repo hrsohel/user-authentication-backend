@@ -4,7 +4,7 @@ const { authorizeUser, authorizeSubDomain } = require("./middlewares")
 const router = express.Router()
 
 router.get("/", (req, res) => {
-    res.json({message: "Hello"})
+    res.json({message: "Hello! This is from home url."})
 })
 router.post("/add-user", addUser)
 router.post("/login-user", loginUser)
