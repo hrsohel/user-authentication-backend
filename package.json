@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "dev": "nodemon app.js",
+    "dev": "node api.js && nodemon app.js",
     "server": "node app.js",
-    "build": "npm run build"
+    "build": "node api.js && npm run build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
